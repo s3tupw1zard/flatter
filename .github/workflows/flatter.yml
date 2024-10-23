@@ -51,7 +51,7 @@ jobs:
         uses: andyholmes/flatter@main
         with:
           files: |
-            flatpaks/OrcaSlicer/io.github.doftfever.OrcaSlicer.yml
+            flatpaks/OrcaSlicer/io.github.softfever.OrcaSlicer.yml
           gpg-sign: ${{ steps.gpg.outputs.fingerprint }}
           upload-bundles: true
           upload-pages-artifact: true
