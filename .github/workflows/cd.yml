@@ -21,8 +21,8 @@ jobs:
         arch: [x86_64, aarch64]
         runtime:
         - name: gnome-45
-            packages: org.gnome.Platform//45 org.gnome.Sdk//45
-            remote: flathub
+          packages: org.gnome.Platform//45 org.gnome.Sdk//45
+          remote: flathub
       fail-fast: false
       # Only one job at a time can use the shared repository cache
       max-parallel: 1
