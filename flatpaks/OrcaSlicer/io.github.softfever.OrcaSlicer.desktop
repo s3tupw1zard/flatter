@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=OrcaSlicer
+Comment=OrcaSlicer
+Icon=io.github.softfever.OrcaSlicer
+Exec=orca-slicer
+Terminal=false
+Categories=Utility;
+StartupWMClass=OrcaSlicer

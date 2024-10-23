@@ -1,0 +1,140 @@
+app-id: io.github.softfever.OrcaSlicer
+runtime: org.gnome.Platform
+runtime-version: "45"
+sdk: org.gnome.Sdk
+command: orca-slicer
+build-options:
+ build-args:
+  - --share=network
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --share=network
+  - --device=all
+  - --filesystem=home
+  - --filesystem=xdg-run/gvfs
+  - --filesystem=/run/media
+  - --filesystem=/media
+  - --talk-name=io.github.softfever.OrcaSlicer.InstanceCheck.*
+  - --system-talk-name=org.freedesktop.UDisks2
+  - --env=BAMBU_STUDIO_DARK_THEME=false
+cleanup:
+  - "*.la"
+  - "*.a"
+  - /include
+  - /app/bin/*
+modules:
+  # OrcaSlicer AppImage Extraction
+  - name: orca-slicer
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 -t /app/bin/ apply_extra orca-slicer stub_sandbox
+      - |
+        for s in 16 32 48 64 128 192; do
+          install -Dm644 ${s}.png /app/share/icons/hicolor/${s}x${s}/apps/${FLATPAK_ID}.png
+        done
+      - install -Dm644 ${FLATPAK_ID}.desktop -t /app/share/applications/
+    sources:
+      - type: extra-data
+        filename: appimage
+        url: https://github.com/SoftFever/OrcaSlicer/releases/download/v2.2.0-rc/OrcaSlicer_Linux_V2.2.0-rc.AppImage
+        sha256: 7196d7d925739e862a6a9e845b84841b319ba78654032b5932d37a8eea96e9fc
+        size: 116679872
+      - type: script
+        dest-filename: apply_extra
+        commands:
+          - unappimage appimage &>/dev/null
+          - rm -f appimage
+          - rm -f squashfs-root/{.DirIcon,AppRun,OrcaSlicer.desktop,OrcaSlicer.png}
+          - rm -f squashfs-root/{libEGL.so,libGLESv2.so,libvulkan.so.1}
+          - rm -f squashfs-root/SharedSupport/*.dll
+          - rm -rf squashfs-root/{branding,usr}
+          - mv squashfs-root/* ./
+          - rmdir squashfs-root
+          - install -Dm755 /app/bin/stub_sandbox chrome-sandbox
+      - type: script
+        dest-filename: orca-slicer
+        commands:
+          - export TMPDIR=$XDG_RUNTIME_DIR/app/$FLATPAK_ID
+          - exec zypak-wrapper /app/extra/bin/orca-slicer "$@"
+      - type: script
+        dest-filename: stub_sandbox
+        commands:
+          - |
+            echo Stub sandbox ignoring command: $@
+            exit 1
+      - type: file
+        path: io.github.softfever.OrcaSlicer.desktop
+      - type: file
+        path: icons/16.png
+      - type: file
+        path: icons/32.png
+      - type: file
+        path: icons/48.png
+      - type: file
+        path: icons/64.png
+      - type: file
+        path: icons/128.png
+      - type: file
+        path: icons/192.png
+
+    modules:
+      # Unappimage for handling AppImage extraction
+      - ../shared-modules/unappimage/unappimage.json
+      # Zypak for running AppImage in Flatpak sandbox
+      - ../shared-modules/zypak/zypak.json
+      # GIDocgen for generating documentation
+      - name: gi-docgen
+        buildsystem: simple
+        builddir: true
+        build-commands:
+#          - pip3 install --no-cache-dir --target=/app/python_modules jinja2 markdown markupsafe pygments smartypants typogrify
+          - pip3 install --prefix=/app gi-docgen==2023.1
+#          - |
+#            export PYTHONPATH=/app/python_modules:$PYTHONPATH
+#            meson setup _flatpak_build --prefix=/app --pkg-config-path=/app/lib/pkgconfig
+#          - meson compile -C _flatpak_build
+#          - meson install -C _flatpak_build
+        sources:
+#        - type: file
+#          path: python_modules/jinja2-3.1.4-py3-none-any.whl
+#        - type: file
+#          path: python_modules/Markdown-3.7-py3-none-any.whl
+#        - type: file
+#          path: python_modules/MarkupSafe-3.0.2-cp39-cp39-win_amd64.whl
+#        - type: file
+#          path: python_modules/pygments-2.18.0-py3-none-any.whl
+#        - type: file
+#          path: python_modules/smartypants-2.0.1-py2.py3-none-any.whl
+#        - type: file
+#          path: python_modules/typogrify-2.0.7.tar.gz
+        - type: archive
+          url: https://gitlab.gnome.org/GNOME/gi-docgen/-/archive/2023.1/gi-docgen-2023.1.tar.bz2
+          sha256: 6ecc8fc4dfb02eb79aefee7b8cb83ae073939cb446c3e93285f21f46644f56ee
+
+      # Unifdef, a preprocessor tool used by WebKitGTK
+      - name: unifdef
+        buildsystem: simple
+        build-commands:
+          - make
+          - make install
+          - install -Dm755 unifdef /app/bin/unifdef
+        sources:
+          - type: archive
+            url: http://dotat.at/prog/unifdef/unifdef-2.12.tar.gz
+            sha256: fba564a24db7b97ebe9329713ac970627b902e5e9e8b14e19e024eb6e278d10b
+
+      # WebKitGTK with necessary options
+      - name: webkit2gtk
+        buildsystem: cmake
+        builddir: true
+        config-opts:
+          - -DPORT=GTK
+          - -DCMAKE_INSTALL_PREFIX=/app
+          - -DENABLE_INTROSPECTION=ON
+        sources:
+          - type: archive
+            url: https://webkitgtk.org/releases/webkitgtk-2.40.0.tar.xz
+            sha256: a4607ea1bf89669e89b1cb2c63faaec513f93de09b6ae60cc71d6a8aab7ab393
+        post-extract:
+          - cd Source
