@@ -21,6 +21,7 @@ jobs:
         uses: codespell-project/actions-codespell@master
         with:
           skip: .git,dist
+          ignore_words_file: .codespellignore
 
   codeql:
     name: CodeQL
